@@ -1,0 +1,40 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/hackcc/node_modules
+/hackcc/.pnp
+/hackcc/.pnp.*
+/hackcc/.yarn/*
+/hackcc/!.yarn/patches
+/hackcc/!.yarn/plugins
+/hackcc/!.yarn/releases
+/hackcc/!.yarn/versions
+
+# testing
+/hackcc/coverage
+
+# next.js
+/hackcc/.next/
+/hackcc/out/
+
+# production
+/hackcc/build
+
+# misc
+/hackcc/.DS_Store
+/hackcc/*.pem
+
+# debug
+/hackcc/npm-debug.log*
+/hackcc/yarn-debug.log*
+/hackcc/yarn-error.log*
+
+# env files (can opt-in for committing if needed)
+/hackcc/.env*
+
+# vercel
+/hackcc/.vercel
+
+# typescript
+/hackcc/*.tsbuildinfo
+/hackcc/next-env.d.ts
