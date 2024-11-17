@@ -37,20 +37,6 @@ embedding_dim = 2048
 index = faiss.IndexFlatL2(embedding_dim)
 metadata = []
 
-def preprocess_audio(file_path, sample_rate=32000):
-  waveform, sr = librosa.load(file_path, sr=sample_rate, mono=True)
-  mel_spec = librosa.feature.melspectrogram(
-    y=waveform,
-    sr=sample_rate,
-    n_fft=1024,
-    hop_length=512,
-    n_mels=128
-  )
-  mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-  mel_spec_db = (mel_spec_db - mel_spec_db.min()) / (mel_spec_db.max() - mel_spec_db.min())
-  mel_tensor = torch.tensor(mel_spec_db).unsqueeze(0).unsqueeze(0)
-  return mel_tensor
-
 def dap_audio(preview_url, sample_rate=32000):
   temp_file_path = "temp_audio.mp3"
   try:
@@ -143,33 +129,6 @@ except FileNotFoundError:
 for genre in deezer.genres.keys():
   print(f"Processing genre: {genre}")
   add_to_faiss_parallel(genre)
+  time.sleep(0.2)
 
 save_faiss_index_and_metadata()
-
-'''
-# Load FAISS index and metadata
-index = faiss.read_index('faiss_index.bin')
-with open('metadata.npy', 'rb') as f:
-    metadata = np.load(f, allow_pickle=True).tolist()
-
-# Query for similar songs
-def query_similar_songs(query_file_path, top_k=5):
-    # Preprocess and get the query embedding
-    processed_audio = preprocess_audio(query_file_path)
-    query_embedding = torch.mean(processed_audio, dim=-1).squeeze(0).squeeze(0).numpy()
-    
-    # Search FAISS index
-    distances, indices = index.search(np.expand_dims(query_embedding, axis=0), top_k)
-    
-    # Retrieve metadata for similar songs
-    similar_songs = [{'title': metadata[i]['title'], 'artist': metadata[i]['artist'], 'distance': distances[0][j]}
-                     for j, i in enumerate(indices[0])]
-    
-    return similar_songs
-
-# Example query
-query_results = query_similar_songs('backend/august.m4a')
-print('Similar songs:')
-for result in query_results:
-    print(result)
-'''
