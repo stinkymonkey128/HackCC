@@ -1,19 +1,17 @@
 import numpy as np
 import torch
 import faiss
-import librosa
 from audioset_tagging_cnn.pytorch.models import Cnn14
+from pydub import AudioSegment
 
-def preprocess_audio(file_path, sample_rate=32000):
-  waveform, _ = librosa.load(file_path, sr=sample_rate, mono=True)
+def preprocess_audio(audio_data, sample_rate=32000):
+  audio = AudioSegment.from_file(audio_data)
+  audio = audio.set_frame_rate(sample_rate).set_channels(1)
+  waveform = np.array(audio.get_array_of_samples(), dtype=np.float32) / (2 ** 15)
   waveform = torch.Tensor(waveform).unsqueeze(0)
   return waveform
 
-def query_similar_songs(file_path, index_path, metadata_path, model, top_k=5):
-  index = faiss.read_index(index_path)
-  with open(metadata_path, 'rb') as f:
-    metadata = np.load(f, allow_pickle=True).tolist()
-
+def query_similar_songs(file_path, index, metadata, model, top_k=5):
   processed_audio = preprocess_audio(file_path)
   if processed_audio is None:
     return []
@@ -30,12 +28,12 @@ def query_similar_songs(file_path, index_path, metadata_path, model, top_k=5):
 
   similar_songs = [{
     'data': metadata[i],
-    'cosdist': distances[0][j]
+    'cosdist': float(distances[0][j])
    } for j, i in enumerate(indices[0])]
 
   return similar_songs
 
-if __name__ == "__main__":    
+def init_model(model_path='Cnn14_mAP=0.431.pth', faiss_path='faiss_index.bin', metadata_path='metadata.npy'):
   sample_rate = 32000
   window_size = 1024
   hop_size = 320
@@ -55,14 +53,16 @@ if __name__ == "__main__":
   )
 
   # https://zenodo.org/records/3987831/files/Cnn14_mAP%3D0.431.pth?download=1
-  checkpoint = torch.load('Cnn14_mAP=0.431.pth', map_location='cpu')
+  checkpoint = torch.load(model_path, map_location='cpu')
   model.load_state_dict(checkpoint['model'])
   model.eval()
-  file_path = "needed_me.m4a"
-  index_path = "faiss_index.bin"
-  metadata_path = "metadata.npy"
 
-  results = query_similar_songs(file_path, index_path, metadata_path, model, top_k=5)
-  print("Similar songs:")
-  for song in results:
-    print(f"{song['data']}, Distance: {song['cosdist']:.4f}")
+  metadata = None
+  with open(metadata_path, 'rb') as f:
+    metadata = np.load(f, allow_pickle=True).tolist()
+
+  return {
+    'model': model,
+    'index': faiss.read_index(faiss_path),
+    'metadata': metadata
+  }
