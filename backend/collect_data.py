@@ -27,6 +27,7 @@ model = Cnn14(
   classes_num=classes_num
 )
 
+# https://zenodo.org/records/3987831/files/Cnn14_mAP%3D0.431.pth?download=1
 checkpoint = torch.load('Cnn14_mAP=0.431.pth', map_location='cpu')
 model.load_state_dict(checkpoint['model'])
 model.eval()
@@ -77,31 +78,45 @@ def generate_embedding(preview_url):
     print(f"Generated embedding shape: {embedding.shape}")
   return embedding
 
-def add_to_faiss_parallel(genre):
-    chart_songs = deezer.retrieve_chart(genre)
-    if not chart_songs:
-        print(f"Failed to retrieve chart for genre: {genre}")
-        return
+def save_faiss_index_and_metadata(genre):
+  genre_safe = genre.replace(" ", "_").lower()
+  index_file = f"faiss_index_{genre_safe}.bin"
+  metadata_file = f"metadata_{genre_safe}.npy"
+    
+  faiss.write_index(index, index_file)
+    
+  with open(metadata_file, 'wb') as f:
+    np.save(f, metadata, allow_pickle=True)
+    
+  print(f"Saved FAISS index and metadata for genre: {genre}")
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        list(tqdm(executor.map(add_song_to_index, chart_songs), total=len(chart_songs), desc=f"Processing {genre}"))
+def add_to_faiss_parallel(genre):
+  chart_songs = deezer.retrieve_chart(genre)
+  if not chart_songs:
+    print(f"Failed to retrieve chart for genre: {genre}")
+    return
+
+  with ThreadPoolExecutor(max_workers=5) as executor:
+    list(tqdm(executor.map(add_song_to_index, chart_songs), total=len(chart_songs), desc=f"Processing {genre}"))
+
+  save_faiss_index_and_metadata(genre)
 
 def add_song_to_index(song):
-    embedding = None  # Ensure `embedding` is defined
-    try:
-        embedding = generate_embedding(song['previewUrl'])
-        if embedding is None:
-            raise ValueError(f"Failed to generate embedding for {song['title']}")
+  embedding = None
+  try:
+    embedding = generate_embedding(song['previewUrl'])
+    if embedding is None:
+      raise ValueError(f"Failed to generate embedding for {song['title']}")
 
-        if embedding.shape[0] != index.d:
-            raise ValueError(f"Dimension mismatch for {song['title']} by {song['artist']}")
+    if embedding.shape[0] != index.d:
+      raise ValueError(f"Dimension mismatch for {song['title']} by {song['artist']}")
 
-        index.add(np.expand_dims(embedding, axis=0))
-        metadata.append(song)
-    except Exception as e:
-        print(f"Error adding song {song['title']} by {song['artist']}: {e}")
-    finally:
-        torch.cuda.empty_cache()
+    index.add(np.expand_dims(embedding, axis=0))
+    metadata.append(song)
+  except Exception as e:
+    print(f"Error adding song {song['title']} by {song['artist']}: {e}")
+  finally:
+    torch.cuda.empty_cache()
 
 
 for genre in deezer.genres.keys():
