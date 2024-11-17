@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +13,7 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CancelIcon from "@mui/icons-material/Cancel";
 
 export default function Home() {
+  const router = useRouter();
   const [songInput, setSongInput] = useState("");
   const [apiResponse, setApiResponse] = useState([]);
   const [isCorrect, setIsCorrect] = useState(null);
@@ -51,6 +53,7 @@ export default function Home() {
   const handleSongSelection = (index) => {
     setIsCorrect(true);
     setApiResponse([apiResponse[index]]);
+    router.push('/result?song=' + encodeURIComponent(apiResponse[index].title));
   };
 
   return (
@@ -132,8 +135,14 @@ export default function Home() {
                   )}
                   <div className="mt-4 flex space-x-4">
                     <button
-                      onClick={() => setIsCorrect(true)}
+                      onClick={() => {
+                        setIsCorrect(true);
+                        router.push('/result?song=' + encodeURIComponent(apiResponse[0].title));
+                      }}
                       className="transition-transform transform hover:scale-110"
+                      tabIndex={0}
+                      onMouseEnter={() => setHovering({ ...hovering, check: true })}
+                      onMouseLeave={() => setHovering({ ...hovering, check: false })}
                     >
                       {hovering.check ? (
                         <CheckCircleIcon
@@ -150,6 +159,8 @@ export default function Home() {
                     <button
                       onClick={() => setIsCorrect(false)}
                       className="transition-transform transform hover:scale-110"
+                      onMouseEnter={() => setHovering({ ...hovering, cancel: true })}
+                      onMouseLeave={() => setHovering({ ...hovering, cancel: false })}
                     >
                       {hovering.cancel ? (
                         <CancelIcon
