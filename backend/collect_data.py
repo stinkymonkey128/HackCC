@@ -3,12 +3,13 @@ import numpy as np
 import torch
 import deezer as deezer
 from audioset_tagging_cnn.pytorch.models import Cnn14
-import librosa
+from pydub import AudioSegment
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import os
+import io
 
 sample_rate = 32000
 window_size = 1024
@@ -38,26 +39,20 @@ index = faiss.IndexFlatL2(embedding_dim)
 metadata = []
 
 def dap_audio(preview_url, sample_rate=32000):
-  temp_file_path = "temp_audio.mp3"
   try:
     response = requests.get(preview_url, stream=True, timeout=10)
-    if response.status_code != 200:
-      print(f"Failed to download audio from {preview_url}")
-      return None
+    response.raise_for_status()
+    audio_data = response.content
 
-    with open(temp_file_path, "wb") as temp_file:
-      for chunk in response.iter_content(chunk_size=1024):
-        temp_file.write(chunk)
+    audio = AudioSegment.from_file(io.BytesIO(audio_data))
+    audio = audio.set_frame_rate(sample_rate).set_channels(1)
 
-    waveform, _ = librosa.load(temp_file_path, sr=sample_rate, mono=True)
+    waveform = np.array(audio.get_array_of_samples(), dtype=np.float32) / (2 ** 15)
     waveform = torch.Tensor(waveform).unsqueeze(0)
     return waveform
   except Exception as e:
     print(f"Error processing audio: {e}")
     return None
-  finally:
-    if os.path.exists(temp_file_path):
-      os.remove(temp_file_path)
 
 def generate_embedding(preview_url):
   processed_audio = dap_audio(preview_url)
