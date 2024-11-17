@@ -11,3 +11,25 @@ body {
     --radius: 0.5rem;
   }
 }
+
+.swiper {
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-slide {
+  text-align: center;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: #000 !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: #000 !important;
+}
