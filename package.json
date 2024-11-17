@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "react-player": "^2.16.0"
+  }
+}
