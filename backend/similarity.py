@@ -3,6 +3,7 @@ import torch
 import faiss
 from audioset_tagging_cnn.pytorch.models import Cnn14
 from pydub import AudioSegment
+import deezer
 
 def preprocess_audio(audio_data, sample_rate=32000):
   audio = AudioSegment.from_file(audio_data)
@@ -27,7 +28,7 @@ def query_similar_songs(file_path, index, metadata, model, top_k=5):
   distances, indices = index.search(np.expand_dims(embedding, axis=0), top_k)
 
   similar_songs = [{
-    'data': metadata[i],
+    'data': deezer.retrieve_song_by_id(metadata[i].id),
     'cosdist': float(distances[0][j])
    } for j, i in enumerate(indices[0])]
 

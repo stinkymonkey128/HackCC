@@ -61,7 +61,6 @@ def generate_embedding(preview_url):
   with torch.no_grad():
     output_dict = model(processed_audio)
     embedding = output_dict['embedding'].cpu().numpy().squeeze()
-    print(f"Generated embedding shape: {embedding.shape}")
   return embedding
 
 def save_faiss_index_and_metadata():

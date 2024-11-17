@@ -25,16 +25,34 @@ def retrieve_songs(song_name: str, limit=50):
   pure = []
   for response in responses:
     song_info = {
-      "title": response.get('title'),
-      "albumTitle": response.get('album', {}).get('title'),
-      "artist": response.get('artist', {}).get('name'),
-      "year": response.get('album', {}).get('release_date', '').split('-')[0],
-      "previewUrl": response.get('preview'),
-      "albumCoverUrl": response.get('album', {}).get('cover_big')
+      'title': response.get('title'),
+      'albumTitle': response.get('album', {}).get('title'),
+      'artist': response.get('artist', {}).get('name'),
+      'year': {},
+      'previewUrl': response.get('preview'),
+      'albumCoverUrl': response.get('album', {}).get('cover_big'),
+      'id': response.get('id', {})
     }
     pure.append(song_info)
 
   return pure
+
+def retrieve_song_by_id(id: str):
+  response = r.get(f'https://api.deezer.com/track/{id}')
+  if response.status_code != 200:
+    return 0, None
+  
+  response = response.json()
+
+  return {
+    'title': response.get('title'),
+    'albumTitle': response.get('album', {}).get('title'),
+    'artist': response.get('artist', {}).get('name'),
+    'year': {},
+    'previewUrl': response.get('preview'),
+    'albumCoverUrl': response.get('album', {}).get('cover_big'),
+    'id': response.get('id', {})
+  }
 
 def retrieve_genres():
   response = r.get('https://api.deezer.com/genre/')
@@ -45,7 +63,7 @@ def retrieve_genres():
   data = response.json()
   genres = data.get('data', [])
   
-  genre_dict = {genre['name']: genre['id'] for genre in genres if genre['name'] != "All"}
+  genre_dict = {genre['name']: genre['id'] for genre in genres if genre['name'] != 'All'}
   return genre_dict
 
 def retrieve_chart(genre: str, limit=300):
@@ -59,13 +77,13 @@ def retrieve_chart(genre: str, limit=300):
 
   for track in data.get('tracks', {}).get('data', []):
     track_info = {
-      "title": track.get('title'),
-      "albumTitle": track.get('album', {}).get('title'),
-      "artist": track.get('artist', {}).get('name'),
-      "year": track.get('album', {}).get('release_date', '').split('-')[0],
-      "previewUrl": track.get('preview'),
-      "albumCoverUrl": track.get('album', {}).get('cover_big'),
-      "genre": genre
+      'title': track.get('title'),
+      'albumTitle': track.get('album', {}).get('title'),
+      'artist': track.get('artist', {}).get('name'),
+      'year': track.get('album', {}).get('release_date', '').split('-')[0],
+      'previewUrl': track.get('preview'),
+      'albumCoverUrl': track.get('album', {}).get('cover_big'),
+      'id': response.get('id', {})
     }
     chart_data.append(track_info)
 
