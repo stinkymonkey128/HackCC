@@ -101,9 +101,6 @@ def add_song_to_index(song):
     except Exception as e:
         print(f"Error adding song {song['title']} by {song['artist']}: {e}")
     finally:
-        # Clear memory after processing each song
-        if embedding is not None:
-            del embedding
         torch.cuda.empty_cache()
 
 
