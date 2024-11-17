@@ -14,6 +14,12 @@ const RandomBlurredBackground = ({ children }) => {
       '/images/Get_up.jpg',
       '/images/Flower_boy.jpg',
       '/images/KissOfLife.jpg',
+      '/images/Blonde.jpg',
+      '/images/Dean.jpg',
+      '/images/LargerThanLife.jpg',
+      '/images/Ye.jpg',
+      '/images/Nevermind.jpg',
+      '/images/MoreLife.jpg',
     ];
 
     const selectRandomImage = () => {
@@ -23,7 +29,7 @@ const RandomBlurredBackground = ({ children }) => {
     };
 
     selectRandomImage();
-    const intervalId = setInterval(selectRandomImage, 10000);
+    const intervalId = setInterval(selectRandomImage, 5000);
 
     return () => clearInterval(intervalId);
   }, []);

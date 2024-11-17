@@ -1,65 +1,24 @@
 "use client";
 
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Pagination, Autoplay } from 'swiper/modules';
 import { Music } from "lucide-react";
-import { useState, useEffect } from "react";
-
-// Import Swiper styles
-import 'swiper/css';
-import 'swiper/css/pagination';
-
-// Reuse the same RandomBlurredBackground component
-const RandomBlurredBackground = ({ children }) => {
-  const [currentImage, setCurrentImage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const images = [
-      '/images/Get_up.jpg',
-      '/images/Flower_boy.jpg',
-      '/images/KissOfLife.jpg',
-    ];
-
-    const selectRandomImage = () => {
-      const randomIndex = Math.floor(Math.random() * images.length);
-      setCurrentImage(images[randomIndex]);
-      setIsLoading(false);
-    };
-
-    selectRandomImage();
-    const intervalId = setInterval(selectRandomImage, 10000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      <div className={`absolute inset-0 scale-110 transition-opacity duration-1000 ${
-        isLoading ? 'opacity-0' : 'opacity-100'
-      }`}>
-        <div 
-          className="h-full w-full bg-gradient-to-br from-purple-500 to-pink-500 blur-md"
-          style={{
-            backgroundImage: currentImage ? `url(${currentImage})` : 'none',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
-      <div className="relative z-10">
-        {children}
-      </div>
-    </div>
-  );
-};
+import { images } from './images';
+import gsap from "gsap";
 
 export default function Result() {
   const searchParams = useSearchParams();
   const song = searchParams.get('song');
   const [data, setData] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const sliderRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const isIdleRef = useRef(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,42 +36,117 @@ export default function Result() {
     }
   }, [song]);
 
-  return (
-    <RandomBlurredBackground>
-      <div className="min-h-screen">
-        {/* Header */}
-        <header className="absolute top-0 left-0 w-full p-6 flex items-center justify-between z-10">
-          <div className="flex items-center space-x-2">
-            <Music className="h-6 w-6 text-white" />
-            <h1 className="text-2xl font-bold text-white">melodize</h1>
-          </div>
-        </header>
+  useEffect(() => {
+    if (isClient && sliderRef.current) {
+      initializeCards();
+      window.addEventListener('mousemove', handleMouseMove);
+    }
 
-        <main className="flex flex-col items-center justify-center min-h-screen px-4">
-          <div className="w-[400px] h-[400px] mb-20">
-            <Swiper
-              modules={[Pagination, Autoplay]}
-              spaceBetween={30}
-              slidesPerView={1}
-              pagination={{ clickable: true }}
-              autoplay={{
-                delay: 5000,
-                disableOnInteraction: false,
-              }}
-              className="w-full h-full rounded-xl"
-            >
-              <SwiperSlide className="w-full h-full">
-                <img 
-                  src="/images/Blonde_-_Frank_Ocean.jpg"
-                  alt="Frank Ocean Blonde"
-                  className="w-full h-full object-cover rounded-xl"
-                  style={{ objectFit: 'cover' }}
-                />
-              </SwiperSlide>
-            </Swiper>
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isClient, sliderRef]);
+
+  const handleMouseMove = () => {
+    // If mouse moves, reset cards to original position if they were in idle state
+    if (isIdleRef.current) {
+      initializeCards();
+      isIdleRef.current = false;
+    }
+
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Set new timeout for idle animation
+    timeoutRef.current = setTimeout(() => {
+      if (!isAnimating) {
+        applyIdleAnimation();
+      }
+    }, 4000);
+  };
+
+  const applyIdleAnimation = () => {
+    isIdleRef.current = true;
+    const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
+    const lastCard = cards[cards.length - 1];
+    const otherCards = cards.slice(0, -1);
+
+    // Animate last card slightly up
+    gsap.to(lastCard, {
+      y: "45%",  // Move up by 5%
+      duration: 1.2,
+      ease: "power2.out"
+    });
+
+    // Animate other cards down and behind the last card
+    gsap.to(otherCards, {
+      y: (i) => 20 + (i * 2) + "%",  // Move down and stack them
+      z: (i) => -15 * (otherCards.length - i),  // Push them back in 3D space
+      duration: 2.5,
+      ease: "power2.out",
+      stagger: 0.05
+    });
+  };
+
+  const initializeCards = () => {
+    const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
+    gsap.to(cards, {
+      y: (i) => 0 + 20 * i + "%",
+      z: (i) => 15 * i,
+      duration: 1,
+      ease: "power3.out",
+      stagger: -0.1,
+    });
+  };
+
+  const handleClick = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    const slider = sliderRef.current;
+    const cards = Array.from(slider.querySelectorAll(".card"));
+    const lastCard = cards.pop();
+    
+    gsap.to(lastCard, {
+      y: "+=150%",
+      duration: 0.75,
+      ease: "power3.inOut",
+      onStart: () => {
+        setTimeout(() => {
+          slider.prepend(lastCard);
+          initializeCards();
+          setTimeout(() => {
+            setIsAnimating(false);
+          }, 1000);
+        }, 300);
+      },
+    });
+  };
+
+  return (
+    <div className="container">
+      <header className="header">
+        <div className="header-content">
+          <Music className="h-6 w-6 text-black" />
+          <h1 className="header-title">melodize</h1>
+        </div>
+      </header>
+
+      <div className="slider" ref={sliderRef} onClick={handleClick}>
+        {images.map((image) => (
+          <div key={image.id} className="card">
+            <img
+              src={image.src}
+              alt={image.title}
+              className="w-full h-full object-cover"
+            />
           </div>
-        </main>
+        ))}
       </div>
-    </RandomBlurredBackground>
+    </div>
   );
 }
