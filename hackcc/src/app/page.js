@@ -2,8 +2,22 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const [query, setQuery] = useState('');
+  const [data, setData] = useState(null);
+  const router = useRouter();
+
+  function clicked() {
+    console.log(query);
+    fetch('http://127.0.0.1:5000/?song=' + query).then(res => res.json()).then(response => {
+      setData(response);
+
+      router.push('/result?song=' + query);
+    })
+  }
   return (
     <div className="grid min-h-screen bg-gray-100">
       {/* Header */}
@@ -19,14 +33,18 @@ export default function Home() {
         >
           How are you feeling today?
         </Label>
-
         <div className="w-full max-w-md">
           <Input
             id="songInput"
             placeholder="Type a song name..."
             className="w-full"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
           />
+          <button onClick={clicked}>click me</button>
         </div>
+
+        {JSON.stringify(data)}
       </main>
     </div>
   );
