@@ -1,146 +1,227 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Music, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import PlayButton from "@/components/playbutton";
 
-const RandomBlurredBackground = ({ children }) => {
-  const [currentImage, setCurrentImage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Define your background images array
-    const images = [
-      '/images/Get_up.jpg',
-      '/images/Flower_boy.jpg',
-      '/images/KissOfLife.jpg',
-      '/images/Blonde.jpg',
-      '/images/Dean.jpg',
-      '/images/LargerThanLife.jpg',
-      '/images/Ye.jpg',
-      '/images/Nevermind.jpg',
-      '/images/MoreLife.jpg',
-    ];
-
-    const selectRandomImage = () => {
-      const randomIndex = Math.floor(Math.random() * images.length);
-      setCurrentImage(images[randomIndex]);
-      setIsLoading(false);
-    };
-
-    selectRandomImage();
-    const intervalId = setInterval(selectRandomImage, 5000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      <div className={`absolute inset-0 scale-110 transition-opacity duration-1000 ${
-        isLoading ? 'opacity-0' : 'opacity-100'
-      }`}>
-        <div 
-          className="h-full w-full bg-gradient-to-br from-purple-500 to-pink-500 blur-md"
-          style={{
-            backgroundImage: currentImage ? `url(${currentImage})` : 'none',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
-      <div className="relative z-10">
-        {children}
-      </div>
-    </div>
-  );
-};
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 export default function Home() {
-  const [query, setQuery] = useState('');
-  const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [songInput, setSongInput] = useState("");
+  const [apiResponse, setApiResponse] = useState([]);
+  const [isCorrect, setIsCorrect] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [hovering, setHovering] = useState({ check: false, cancel: false });
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    
-    setIsLoading(true);
+  const fetchSongs = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/?song=' + encodeURIComponent(query));
-      const responseData = await response.json();
-      setData(responseData);
-      router.push('/result?song=' + encodeURIComponent(query));
+      setLoading(true);
+      const response = await fetch(
+        `http://127.0.0.1:5000/song/?name=${encodeURIComponent(songInput)}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch songs.");
+      }
+
+      const data = await response.json();
+      setApiResponse(data);
+      setIsCorrect(null);
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (songInput.trim()) {
+      setApiResponse([]);
+      setIsCorrect(null);
+      fetchSongs();
     }
+  };
+
+  const handleSongSelection = (index) => {
+    setIsCorrect(true);
+    setApiResponse([apiResponse[index]]);
+    router.push('/result?song=' + encodeURIComponent(apiResponse[index].title));
   };
 
   return (
-    <RandomBlurredBackground>
-      <div className="min-h-screen">
-        {/* Header */}
-        <header className="absolute top-0 left-0 w-full p-6 flex items-center justify-between z-10">
-          <div className="flex items-center space-x-2">
-            <Music className="h-6 w-6 text-white" />
-            <h1 className="text-2xl font-bold text-white">melodize</h1>
-          </div>
-        </header>
+    <div className="grid min-h-screen">
+      <header className="absolute top-0 left-0 w-full p-4 flex items-center z-10">
+        <h1 className="text-2xl font-bold">melodize</h1>
+      </header>
 
-        {/* Main Content */}
-        <main className="flex flex-col items-center justify-center min-h-screen px-4">
-          <div className="w-full max-w-md space-y-6 text-center">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter text-white sm:text-4xl md:text-5xl">
-                How are you feeling today?
-              </h2>
-              <p className="mx-auto max-w-[600px] text-gray-200 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Let us find the perfect melody for your mood
-              </p>
-            </div>
-            
-            <div className="w-full space-y-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Type a song name..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/90 backdrop-blur-sm border-0 text-gray-900 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyPress={handleKeyPress}
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    <Search className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              
-              {data && (
-                <div className="mt-4 p-4 rounded-lg bg-white/90 backdrop-blur-sm">
-                  <pre className="text-left text-sm text-gray-700 overflow-auto">
-                    {JSON.stringify(data, null, 2)}
-                  </pre>
+      <main className="flex flex-col items-center justify-center flex-1 mt-16">
+        <Label
+          htmlFor="songInput"
+          className="mb-4 text-5xl text-center text-gray-700"
+        >
+          How are you feeling today?
+        </Label>
+
+        <Label
+          htmlFor="songInput"
+          className="mb-4 text-2xl text-center text-gray-500"
+        >
+          Let us find the perfect melody for your mood
+        </Label>
+
+        <div className="w-full max-w-md">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full max-w-md flex flex-col items-center"
+          >
+            <Input
+              id="songInput"
+              placeholder="Type a song name..."
+              className="w-full mb-4"
+              value={songInput}
+              onChange={(e) => setSongInput(e.target.value)}
+              disabled={loading}
+            />
+          </form>
+        </div>
+
+        {loading && (
+          <div className="w-full max-w-2xl mt-8 space-y-4">
+            {Array.from({ length: 1 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex items-center bg-gray-700 rounded-lg shadow-md p-4"
+              >
+                <Skeleton className="w-24 h-24 rounded-lg mr-4" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-5 w-1/2" />
+                  <Skeleton className="h-4 w-1/3" />
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
-        </main>
-      </div>
-    </RandomBlurredBackground>
+        )}
+
+        {!loading && apiResponse.length > 0 && (
+          <div className="w-full max-w-2xl mt-8">
+            {isCorrect === null && (
+              <div className="relative bg-gray-800 rounded-xl shadow-md p-4 flex items-center">
+                <img
+                  src={apiResponse[0].albumCoverUrl}
+                  alt={apiResponse[0].title}
+                  className="w-32 h-32 object-cover rounded-lg mr-4"
+                />
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-white">
+                    {apiResponse[0].title}
+                  </h3>
+                  <p className="text-gray-400">{apiResponse[0].artist}</p>
+                  <p className="text-gray-500 text-sm">
+                    {apiResponse[0].albumTitle}
+                  </p>
+                  {apiResponse[0].year && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      Released: {apiResponse[0].year}
+                    </p>
+                  )}
+                  <div className="mt-4 flex space-x-4">
+                    <button
+                      onClick={() => {
+                        setIsCorrect(true);
+                        router.push('/result?song=' + encodeURIComponent(apiResponse[0].title));
+                      }}
+                      className="transition-transform transform hover:scale-110"
+                      tabIndex={0}
+                      onMouseEnter={() => setHovering({ ...hovering, check: true })}
+                      onMouseLeave={() => setHovering({ ...hovering, check: false })}
+                    >
+                      {hovering.check ? (
+                        <CheckCircleIcon
+                          className="text-blue-500"
+                          style={{ fontSize: "2.5rem" }}
+                        />
+                      ) : (
+                        <CheckCircleOutlineIcon
+                          className="text-blue-500"
+                          style={{ fontSize: "2.5rem" }}
+                        />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setIsCorrect(false)}
+                      className="transition-transform transform hover:scale-110"
+                      onMouseEnter={() => setHovering({ ...hovering, cancel: true })}
+                      onMouseLeave={() => setHovering({ ...hovering, cancel: false })}
+                    >
+                      {hovering.cancel ? (
+                        <CancelIcon
+                          className="text-red-500"
+                          style={{ fontSize: "2.5rem" }}
+                        />
+                      ) : (
+                        <CancelOutlinedIcon
+                          className="text-red-500"
+                          style={{ fontSize: "2.5rem" }}
+                        />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="absolute bottom-2 right-2">
+                  <PlayButton audioUrl={apiResponse[0].previewUrl} />
+                </div>
+              </div>
+            )}
+
+            {isCorrect === false && (
+              <div className="mt-8 space-y-4 max-w-2xl">
+                {apiResponse.slice(1, 6).map((song, index) => (
+                  <div
+                    key={index}
+                    className="relative flex items-center bg-gray-700 rounded-lg shadow-md p-4 transform transition-transform hover:scale-105 w-full"
+                  >
+                    <img
+                      src={song.albumCoverUrl}
+                      alt={song.title}
+                      className="w-24 h-24 object-cover rounded-lg mr-4 flex-shrink-0"
+                    />
+                    <div
+                      className="flex-1 text-left cursor-pointer"
+                      onClick={() => handleSongSelection(index + 1)}
+                    >
+                      <h3 className="text-lg font-bold text-white">
+                        {song.title}
+                      </h3>
+                      <p className="text-gray-400">{song.artist}</p>
+                      <p className="text-gray-500 text-sm">{song.albumTitle}</p>
+                      {song.year && (
+                        <p className="text-gray-500 text-xs mt-1">
+                          Released: {song.year}
+                        </p>
+                      )}
+                    </div>
+                    <div
+                      className="absolute bottom-2 right-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <PlayButton audioUrl={song.previewUrl} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
