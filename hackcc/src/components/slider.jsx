@@ -9,12 +9,57 @@ const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
 const Slider = () => {
   const sliderRef = useRef(null);
-  const [iAnimating, setIsAnimating] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [isClient, setIsClient] = useState(false);
+
+useEffect(() => {
+  setIsClient(true);
+}, []);
+
+useEffect(() => {
+  if (isClient && sliderRef.current) {
+    initializeCards();
+  }
+}, [isClient, sliderRef]);
+
+const initializeCards = () => {
+  const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
+  gsap.to(cards, {
+    y: (i) => 0 + 20 * i + "%",
+    z: (i) => 15 * i,
+    duration: 1,
+    ease: "power3.out",
+    stagger: -0.1,
+  });
+};
+
+const handleClick = () => {
+  if (isAnimating) return;
+  setIsAnimating(true);
+
+  const slider = sliderRef.current;
+  const cards = Array.from(slider.querySelectorAll(".card"));
+  const lastCard = cards.pop();
+
+  gsap.to(lastCard, {
+    y: "+=150%",
+    duration: 0.75,
+    ease: "power3.inOut",
+    onStart: () => {
+      setTimeout(() => {
+        slider.prepend(lastCard);
+        initializeCards();
+        setTimeout(() => {
+          setIsAnimating(false);
+        }, 1000);
+      }, 300);
+    },
+  });
+};
 
   return (
     <>
-    <div className="container">
+    <div className="container" onClick={handleClick}>
       <div className="slider" ref={sliderRef}>
         {videos.map((video) => (
           <div className="card" key={video.id}>
