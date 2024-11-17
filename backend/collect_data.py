@@ -8,6 +8,7 @@ import time
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+import os
 
 sample_rate = 32000
 window_size = 1024
@@ -78,17 +79,17 @@ def generate_embedding(preview_url):
     print(f"Generated embedding shape: {embedding.shape}")
   return embedding
 
-def save_faiss_index_and_metadata(genre):
-  genre_safe = genre.replace(" ", "_").lower()
-  index_file = f"faiss_index_{genre_safe}.bin"
-  metadata_file = f"metadata_{genre_safe}.npy"
-    
+def save_faiss_index_and_metadata():
+  index_file = "faiss_index.bin"
+  metadata_file = "metadata.npy"
+
   faiss.write_index(index, index_file)
-    
+
   with open(metadata_file, 'wb') as f:
     np.save(f, metadata, allow_pickle=True)
-    
-  print(f"Saved FAISS index and metadata for genre: {genre}")
+
+  print("FAISS index and metadata saved.")
+
 
 def add_to_faiss_parallel(genre):
   chart_songs = deezer.retrieve_chart(genre)
@@ -99,7 +100,8 @@ def add_to_faiss_parallel(genre):
   with ThreadPoolExecutor(max_workers=5) as executor:
     list(tqdm(executor.map(add_song_to_index, chart_songs), total=len(chart_songs), desc=f"Processing {genre}"))
 
-  save_faiss_index_and_metadata(genre)
+  print(f"Completed processing for genre: {genre}")
+
 
 def add_song_to_index(song):
   embedding = None
@@ -119,15 +121,26 @@ def add_song_to_index(song):
     torch.cuda.empty_cache()
 
 
+try:
+  if not os.path.exists("faiss_index.bin"):
+    index = faiss.IndexFlatL2(embedding_dim)
+    faiss.write_index(index, "faiss_index.bin")
+    print('created a faiss bin')
+
+  index = faiss.read_index("faiss_index.bin")
+  with open("metadata.npy", 'rb') as f:
+      metadata = np.load(f, allow_pickle=True).tolist()
+  print("Loaded existing FAISS index and metadata.")
+except FileNotFoundError:
+  print("No existing FAISS index or metadata found. Starting fresh.")
+  index = faiss.IndexFlatL2(embedding_dim)
+  metadata = []
+
 for genre in deezer.genres.keys():
   print(f"Processing genre: {genre}")
   add_to_faiss_parallel(genre)
 
-faiss.write_index(index, 'faiss_index.bin')
-with open('metadata.npy', 'wb') as f:
-  np.save(f, metadata, allow_pickle=True)
-
-print('Saved FAISS index and metadata.')
+save_faiss_index_and_metadata()
 
 '''
 # Load FAISS index and metadata
