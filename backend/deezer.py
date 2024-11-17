@@ -83,7 +83,7 @@ def retrieve_chart(genre: str, limit=300):
       'year': track.get('album', {}).get('release_date', '').split('-')[0],
       'previewUrl': track.get('preview'),
       'albumCoverUrl': track.get('album', {}).get('cover_big'),
-      'id': response.get('id', {})
+      'id': track.get('id', {})
     }
     chart_data.append(track_info)
 
