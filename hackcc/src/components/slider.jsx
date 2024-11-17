@@ -130,7 +130,7 @@ export function Result() {
     setIsAnimating(true);
     const slider = sliderRef.current;
     const cards = Array.from(slider.querySelectorAll(".card"));
-    const numVisibleCards = Math.min(4, cards.length);
+    const numVisibleCards =  cards.length;
     const frontCard = cards[numVisibleCards - 1];
     
     if (!frontCard) {
@@ -151,7 +151,7 @@ export function Result() {
         // Remove the front-most visible card from displayImages
         setDisplayImages(prev => {
           const newImages = [...prev];
-          const numVisibleCards = Math.min(4, newImages.length);
+          const numVisibleCards =  newImages.length
           newImages.splice(numVisibleCards - 1, 1); // Remove the front-most visible card
           return newImages;
         });
@@ -160,14 +160,6 @@ export function Result() {
         if (direction === 'right') {
           setLikedSongs(prev => [...prev, currentSong]);
         }
-        
-        // Reset the card's position
-        gsap.set(frontCard, {
-          x: 0,
-          y: 0,
-          rotation: 0,
-          opacity: 1,
-        });
         
         setTimeout(() => {
           setIsAnimating(false);
@@ -272,11 +264,11 @@ export function Result() {
 
       <div className="slider" ref={sliderRef}>
         {displayImages.map((image, index) => (
-          <div 
+          index > displayImages.length - 4 ? (<div 
             key={image.id} 
             className="card relative cursor-grab active:cursor-grabbing"
             style={{
-              visibility: index < 4 ? 'visible' : 'hidden',
+              // visibility: index > d ? 'visible' : 'hidden',
               touchAction: 'none'
             }}
           >
@@ -291,7 +283,7 @@ export function Result() {
               {image.artist && <p className="text-sm">{image.artist}</p>}
               {image.albumTitle && <p className="text-xs mt-1">{image.albumTitle}</p>}
             </div>
-          </div>
+          </div>) : null
         ))}
       </div>
     </div>
