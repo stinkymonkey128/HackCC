@@ -15,7 +15,7 @@ export const images = [
       id: 4,
       src: "/images/Currents.jpg"
     },
-    /*{
+    {
       id: 5,
       src: "/images/Graduation.jpg"
     },
@@ -26,11 +26,11 @@ export const images = [
     {
       id: 7,
       src: "/images/ScaringTheHoes.jpg"
-    },
+    },/*
     {
       id: 8,
       src: "/images/DemonsDay.jpg"
-    },
+    }, 
     {
       id: 9,
       src: "/images/OkComputer.jpg"
@@ -54,5 +54,5 @@ export const images = [
     {
       id: 14,
       src: "/images/SOS.jpg"
-    } */
+    }*/
   ];
