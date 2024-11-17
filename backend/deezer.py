@@ -28,10 +28,10 @@ def retrieve_songs(song_name: str, limit=50):
       'title': response.get('title'),
       'albumTitle': response.get('album', {}).get('title'),
       'artist': response.get('artist', {}).get('name'),
-      'year': {},
+      'year': '',
       'previewUrl': response.get('preview'),
       'albumCoverUrl': response.get('album', {}).get('cover_big'),
-      'id': response.get('id', {})
+      'id': response.get('id', '')
     }
     pure.append(song_info)
 

@@ -1,11 +1,11 @@
 "use client";
 
-import Slider from "@/components/slider";
+import CardSwiper from "@/components/CardSwiper";
 
 export default function Home() {
   return (
     <div className="flex justify-center">
-      <Slider/>
+      <CardSwiper/>
     </div>
   );
 }
