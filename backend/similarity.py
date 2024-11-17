@@ -26,9 +26,11 @@ def query_similar_songs(file_path, index, metadata, model, top_k=5):
     return []
 
   distances, indices = index.search(np.expand_dims(embedding, axis=0), top_k)
+  print(metadata[0])
+
 
   similar_songs = [{
-    'data': deezer.retrieve_song_by_id(metadata[i].id),
+    'data': deezer.retrieve_song_by_id(metadata[i]['id']),
     'cosdist': float(distances[0][j])
    } for j, i in enumerate(indices[0])]
 
