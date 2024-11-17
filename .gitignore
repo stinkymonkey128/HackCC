@@ -38,3 +38,6 @@
 # typescript
 /hackcc/*.tsbuildinfo
 /hackcc/next-env.d.ts
+
+# backend checkpoint
+/backend/Cnn14_mAP=0.431.pth
