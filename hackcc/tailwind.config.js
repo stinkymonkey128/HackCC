@@ -16,7 +16,13 @@ module.exports = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+			keyframes: {
+				"bg-position": {
+					"0%": { backgroundPosition: "0% 50%" },
+					"100%": { backgroundPosition: "100% 50%" },
+				},
+	 		}
   	}
   },
   plugins: [require("tailwindcss-animate")],

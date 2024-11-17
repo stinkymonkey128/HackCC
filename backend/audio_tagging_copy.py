@@ -33,8 +33,6 @@ def generate_embedding(file_path):
   waveform = torch.Tensor(waveform)
   print(waveform)
 
-  waveform = waveform
-
   with torch.no_grad():
     output_dict = model(waveform)
     embedding = output_dict['embedding'].cpu().numpy().squeeze()
