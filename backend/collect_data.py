@@ -52,22 +52,26 @@ def preprocess_audio(file_path, sample_rate=32000):
   return mel_tensor
 
 def dap_audio(preview_url, sample_rate=32000):
+  temp_file_path = "temp_audio.mp3"
   try:
     response = requests.get(preview_url, stream=True, timeout=10)
     if response.status_code != 200:
       print(f"Failed to download audio from {preview_url}")
       return None
 
-    with open("temp_audio.mp3", "wb") as temp_file:
+    with open(temp_file_path, "wb") as temp_file:
       for chunk in response.iter_content(chunk_size=1024):
         temp_file.write(chunk)
 
-    waveform, _ = librosa.load('temp_audio.mp3', sr=sample_rate, mono=True)
+    waveform, _ = librosa.load(temp_file_path, sr=sample_rate, mono=True)
     waveform = torch.Tensor(waveform).unsqueeze(0)
     return waveform
   except Exception as e:
     print(f"Error processing audio: {e}")
     return None
+  finally:
+    if os.path.exists(temp_file_path):
+      os.remove(temp_file_path)
 
 def generate_embedding(preview_url):
   processed_audio = dap_audio(preview_url)
