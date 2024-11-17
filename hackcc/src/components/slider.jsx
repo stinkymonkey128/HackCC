@@ -85,92 +85,131 @@ export function Result() {
 
   const initializeDraggable = () => {
     const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
-    // Get the last visible card (front-most from user's perspective)
-    const numVisibleCards = Math.min(4, cards.length);
-    const frontCard = cards[numVisibleCards - 1];
-    
+    const frontCard = cards[0]; // The new top-most card
+  
     if (!frontCard) return;
-
+  
     if (draggableRef.current && draggableRef.current[0]) {
-      draggableRef.current[0].kill();
+      draggableRef.current[0].kill(); // Remove the old Draggable instance
     }
-
+  
     draggableRef.current = Draggable.create(frontCard, {
-      type: "x",
+      type: "x,y",
       inertia: true,
-      onDrag: function() {
+      onDrag: function () {
         const rotation = this.x / 10;
-        gsap.set(frontCard, { rotation: rotation });
-        
+        gsap.set(frontCard, { rotation });
+  
         const opacity = 1 - Math.abs(this.x) / 500;
         gsap.set(frontCard, { opacity: Math.max(opacity, 0) });
       },
-      onDragEnd: function() {
+      onDragEnd: function () {
         const threshold = 150;
-        
+  
         if (Math.abs(this.x) > threshold) {
-          const direction = this.x > 0 ? 'right' : 'left';
+          const direction = this.x > 0 ? "right" : "left";
           completeSwipe(direction);
+        } else if (Math.abs(this.y) > threshold) {
+          const direction = this.y > 0 ? "down" : "up";
+          traverseStack(direction);
         } else {
+          // Magnet the card back to its original position
           gsap.to(frontCard, {
             x: 0,
+            y: 0,
             rotation: 0,
             opacity: 1,
             duration: 0.5,
-            ease: "power3.out"
+            ease: "power3.out",
           });
         }
-      }
+      },
     });
   };
-
+  
+  
+  
+  const initializeCards = () => {
+    if (!sliderRef.current || displayImages.length === 0) return;
+  
+    const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
+  
+    const baseY = 100; // Adjust this value to move the stack down
+    cards.forEach((card, i) => {
+      gsap.to(card, {
+        zIndex: displayImages.length - i,
+        y: `${baseY + -i * 20}px`, // Base offset + stacked spacing
+        scale: 1 - i * 0.05,
+        visibility: i < 4 ? "visible" : "hidden",
+        duration: 0.5,
+      });
+    });
+  };
+  
+  
+  
+  const traverseStack = (direction) => {
+    setDisplayImages((prev) => {
+      const newImages = [...prev];
+      if (direction === "up") {
+        // Move the top card to the bottom
+        const topCard = newImages.shift();
+        newImages.push(topCard);
+      } else if (direction === "down") {
+        // Move the bottom card to the top
+        const bottomCard = newImages.pop();
+        newImages.unshift(bottomCard);
+      }
+      return newImages;
+    });
+  
+    // Reinitialize card positions
+    setTimeout(() => initializeCards(), 100);
+  };
+  
   const completeSwipe = (direction) => {
     if (isAnimating || !sliderRef.current || displayImages.length === 0) return;
-    
+  
     setIsAnimating(true);
     const slider = sliderRef.current;
     const cards = Array.from(slider.querySelectorAll(".card"));
-    const numVisibleCards =  cards.length;
-    const frontCard = cards[numVisibleCards - 1];
-    
+    const frontCard = cards[0]; // Top-most card
+  
     if (!frontCard) {
       setIsAnimating(false);
       return;
     }
-
-    // Get the current song data (front-most visible card)
-    const currentSong = displayImages[numVisibleCards - 1];
-
+  
+    const currentSong = displayImages[0];
+  
+    // Animate card off-screen
     gsap.to(frontCard, {
-      x: direction === 'right' ? window.innerWidth + 200 : -window.innerWidth - 200,
-      rotation: direction === 'right' ? 45 : -45,
+      x: direction === "right" ? window.innerWidth + 200 : -window.innerWidth - 200,
+      rotation: direction === "right" ? 45 : -45,
       opacity: 0,
       duration: 0.5,
       ease: "power3.inOut",
       onComplete: () => {
-        // Remove the front-most visible card from displayImages
-        setDisplayImages(prev => {
+        setDisplayImages((prev) => {
           const newImages = [...prev];
-          const numVisibleCards =  newImages.length
-          newImages.splice(numVisibleCards - 1, 1); // Remove the front-most visible card
+          newImages.shift(); // Remove top card
           return newImages;
         });
-
-        // If swiped right, add to liked songs
-        if (direction === 'right') {
-          setLikedSongs(prev => [...prev, currentSong]);
+  
+        if (direction === "right") {
+          setLikedSongs((prev) => [...prev, currentSong]);
         }
-        
+  
         setTimeout(() => {
           setIsAnimating(false);
-          if (displayImages.length > 1) {
-            initializeCards();
-            initializeDraggable();
-          }
-        }, 500);
-      }
+          initializeCards(); // Update the card stack visually
+          initializeDraggable(); // Reinitialize Draggable for the new top card
+        }, 100);
+      },
     });
   };
+  
+  
 
   const handleMouseMove = () => {
     if (!sliderRef.current || displayImages.length === 0) return;
@@ -215,27 +254,6 @@ export function Result() {
     });
   };
 
-  const initializeCards = () => {
-    if (!sliderRef.current || displayImages.length === 0) return;
-
-    const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
-    const visibleCards = cards.slice(0, Math.min(4, cards.length));
-    
-    gsap.to(visibleCards, {
-      visibility: "visible",
-      y: (i) => 0 + 20 * i + "%",
-      z: (i) => 15 * i,
-      duration: 0.5,
-      ease: "power3.out",
-      stagger: -0.1,
-    });
-
-    gsap.to(cards.slice(4), {
-      visibility: "hidden",
-      duration: 0
-    });
-  };
-
   // Loading state
   if (displayImages.length === 0) {
     return (
@@ -261,33 +279,35 @@ export function Result() {
           <h1 className="header-title">melodize</h1>
         </div>
       </header>
-
+  
       <div className="slider" ref={sliderRef}>
-        {displayImages.map((image, index) => (
-          index > displayImages.length - 4 ? (<div 
-            key={image.id} 
-            className="card relative cursor-grab active:cursor-grabbing"
-            style={{
-              // visibility: index > d ? 'visible' : 'hidden',
-              touchAction: 'none'
-            }}
-          >
-            <img
-              src={image.src}
-              alt={image.title}
-              className="w-full h-full object-cover"
-              draggable="false"
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4 text-white">
-              <h3 className="text-lg font-bold">{image.title}</h3>
-              {image.artist && <p className="text-sm">{image.artist}</p>}
-              {image.albumTitle && <p className="text-xs mt-1">{image.albumTitle}</p>}
-            </div>
-          </div>) : null
-        ))}
+  {displayImages.map((image, index) => (
+    <div
+      key={image.id}
+      className="card relative cursor-grab active:cursor-grabbing"
+      style={{
+        zIndex: displayImages.length - index, // Ensure proper stacking
+        touchAction: "none",
+        visibility: index < 4 ? "visible" : "hidden", // Show top 4 cards
+      }}
+    >
+      <img
+        src={image.src}
+        alt={image.title}
+        className="w-full h-full object-cover"
+        draggable="false"
+      />
+      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4 text-white">
+        <h3 className="text-lg font-bold">{image.title}</h3>
+        {image.artist && <p className="text-sm">{image.artist}</p>}
+        {image.albumTitle && <p className="text-xs mt-1">{image.albumTitle}</p>}
       </div>
     </div>
-  );
+  ))}
+</div>
+
+    </div>
+  );  
 }
 
 export default Result;
