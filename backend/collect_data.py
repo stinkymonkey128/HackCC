@@ -7,6 +7,7 @@ import librosa
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 
 sample_rate = 32000
 window_size = 1024
@@ -76,31 +77,39 @@ def generate_embedding(preview_url):
     print(f"Generated embedding shape: {embedding.shape}")
   return embedding
 
-def add_song_to_index(song):
-  embedding = generate_embedding(song['previewUrl'])
-  if embedding is None:
-    print(f"Failed to generate embedding for {song['title']}")
-    return
-  if embedding.shape[0] != index.d:
-    print(f"Dimension mismatch for {song['title']} by {song['artist']}")
-    return
-  index.add(np.expand_dims(embedding, axis=0))
-  metadata.append(song)
-  print(f"Added: {song['title']} by {song['artist']}")
-
 def add_to_faiss_parallel(genre):
-  chart_songs = deezer.retrieve_chart(genre)
-  if not chart_songs:
-    print(f"Failed to retrieve chart for genre: {genre}")
-    return
+    chart_songs = deezer.retrieve_chart(genre)
+    if not chart_songs:
+        print(f"Failed to retrieve chart for genre: {genre}")
+        return
 
-  with ThreadPoolExecutor(max_workers=5) as executor:
-    executor.map(add_song_to_index, chart_songs)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        list(tqdm(executor.map(add_song_to_index, chart_songs), total=len(chart_songs), desc=f"Processing {genre}"))
+
+def add_song_to_index(song):
+    embedding = None  # Ensure `embedding` is defined
+    try:
+        embedding = generate_embedding(song['previewUrl'])
+        if embedding is None:
+            raise ValueError(f"Failed to generate embedding for {song['title']}")
+
+        if embedding.shape[0] != index.d:
+            raise ValueError(f"Dimension mismatch for {song['title']} by {song['artist']}")
+
+        index.add(np.expand_dims(embedding, axis=0))
+        metadata.append(song)
+    except Exception as e:
+        print(f"Error adding song {song['title']} by {song['artist']}: {e}")
+    finally:
+        # Clear memory after processing each song
+        if embedding is not None:
+            del embedding
+        torch.cuda.empty_cache()
+
 
 for genre in deezer.genres.keys():
   print(f"Processing genre: {genre}")
   add_to_faiss_parallel(genre)
-  time.sleep(1)
 
 faiss.write_index(index, 'faiss_index.bin')
 with open('metadata.npy', 'wb') as f:
