@@ -29,10 +29,9 @@ def query_similar_songs(file_path, index_path, metadata_path, model, top_k=5):
   distances, indices = index.search(np.expand_dims(embedding, axis=0), top_k)
 
   similar_songs = [{
-    'title': metadata[i]['title'],
-    'artist': metadata[i]['artist'],
-    'distance': distances[0][j]
-  } for j, i in enumerate(indices[0])]
+    'data': metadata[i],
+    'cosdist': distances[0][j]
+   } for j, i in enumerate(indices[0])]
 
   return similar_songs
 
@@ -59,11 +58,11 @@ if __name__ == "__main__":
   checkpoint = torch.load('Cnn14_mAP=0.431.pth', map_location='cpu')
   model.load_state_dict(checkpoint['model'])
   model.eval()
-  file_path = "august.m4a"
+  file_path = "needed_me.m4a"
   index_path = "faiss_index.bin"
   metadata_path = "metadata.npy"
 
   results = query_similar_songs(file_path, index_path, metadata_path, model, top_k=5)
   print("Similar songs:")
   for song in results:
-    print(f"Title: {song['title']}, Artist: {song['artist']}, Distance: {song['distance']:.4f}")
+    print(f"{song['data']}, Distance: {song['cosdist']:.4f}")
