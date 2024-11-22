@@ -22,6 +22,14 @@ export default function Home() {
   const [hovering, setHovering] = useState({ check: false, cancel: false });
   const [selectedSong, setSelectedSong] = useState(0);
 
+  const QUESTION_ARRAY = 
+  ["How are you feeling today?",
+    "What are you in the mood to listen to?",
+    "You got a vibe in mind?",
+    "Whats the move?",
+    "Switch it up?"
+  ];
+
   const fetchSongs = async () => {
     try {
       setLoading(true);
@@ -74,7 +82,7 @@ export default function Home() {
             htmlFor="songInput"
             className="mb-4 text-5xl text-center text-gray-700"
           >
-            How are you feeling today?
+            {QUESTION_ARRAY[Math.floor(Math.random() * QUESTION_ARRAY.length)]}
           </Label>
 
           <Label
@@ -231,7 +239,8 @@ export default function Home() {
       </div>
     )}
     {(isCorrect) && 
-      <Swiper previewUrl={apiResponse[selectedSong]['title']}/>
+      <Swiper previewUrl={apiResponse[selectedSong]['previewUrl']}/>
+      //<Swiper previewUrl={apiResponse[selectedSong]['title']}/>
     }
     </>
   );

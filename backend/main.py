@@ -24,7 +24,7 @@ def song():
 @app.route('/similar/')
 def similar():
   preview_url = request.args.get('url')
-  top_k = 5
+  top_k = 50
   if request.args.get('top_k') != None:
     top_k = request.args.get('top_k')
   response = requests.get(preview_url, stream=True, timeout=10)

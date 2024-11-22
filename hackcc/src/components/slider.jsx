@@ -20,7 +20,6 @@ export function Swiper({ previewUrl }) {
   const timeoutRef = useRef(null);
   const draggableRef = useRef(null);
 
-  // Audio-related refs
   const audioRef = useRef(null);
   const [currentAudioSrc, setCurrentAudioSrc] = useState(null);
 
@@ -32,9 +31,11 @@ export function Swiper({ previewUrl }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-
+        console.log(previewUrl)
+        // http://127.0.0.1:5000/song/?name=${previewUrl}&limit=200
+        // 
         const response = await fetch(
-          `http://127.0.0.1:5000/song/?name=${previewUrl}&limit=200`
+          `http://127.0.0.1:5000/similar/?url=${previewUrl}`
         );
 
         if (!response.ok) {
@@ -42,15 +43,16 @@ export function Swiper({ previewUrl }) {
         }
     
         const responseData = await response.json();
+        console.log(responseData)
         setData(responseData);
     
         const formattedImages = responseData.map((song, index) => ({
           id: index + 1,
-          src: song.albumCoverUrl,
-          title: song.title,
-          artist: song.artist,
-          albumTitle: song.albumTitle,
-          preview: song.previewUrl
+          src: song["data"].albumCoverUrl,
+          title: song["data"].title,
+          artist: song["data"].artist,
+          albumTitle: song["data"].albumTitle,
+          preview: song["data"].previewUrl
         }));
     
         setDisplayImages(formattedImages);
@@ -59,7 +61,7 @@ export function Swiper({ previewUrl }) {
         console.error("Error:", error);
         setDisplayImages([]);
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
 
@@ -73,7 +75,6 @@ export function Swiper({ previewUrl }) {
       initializeCards();
       initializeDraggable();
       window.addEventListener('mousemove', handleMouseMove);
-      // Initialize audio for the top card
       playCurrentAudio();
     }
 
@@ -85,7 +86,6 @@ export function Swiper({ previewUrl }) {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      // Cleanup audio on unmount
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -94,7 +94,6 @@ export function Swiper({ previewUrl }) {
   }, [isClient, displayImages]);
 
   useEffect(() => {
-    // When the top card changes, play the new audio
     playCurrentAudio();
   }, [displayImages]);
 
@@ -102,30 +101,24 @@ export function Swiper({ previewUrl }) {
     const topSong = displayImages[0];
     if (!topSong || !topSong.preview) return;
 
-    // If the current audio source is the same as the new one, do nothing
     if (currentAudioSrc === topSong.preview) return;
 
-    // Pause and cleanup previous audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
 
-    // Create a new Audio instance
     const audio = new Audio(topSong.preview);
     audioRef.current = audio;
     setCurrentAudioSrc(topSong.preview);
 
-    // Optional: Set additional audio properties
     audio.loop = false;
     audio.autoplay = true;
 
-    // Handle any errors
     audio.onerror = (e) => {
       console.error("Audio playback failed:", e);
     };
 
-    // Play the audio
     audio.play().catch((error) => {
       console.error("Audio play error:", error);
     });
@@ -133,12 +126,12 @@ export function Swiper({ previewUrl }) {
 
   const initializeDraggable = () => {
     const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
-    const frontCard = cards[0]; // The new top-most card
+    const frontCard = cards[0]; 
   
     if (!frontCard) return;
   
     if (draggableRef.current && draggableRef.current[0]) {
-      draggableRef.current[0].kill(); // Remove the old Draggable instance
+      draggableRef.current[0].kill(); 
     }
   
     draggableRef.current = Draggable.create(frontCard, {
@@ -161,7 +154,6 @@ export function Swiper({ previewUrl }) {
           const direction = this.y > 0 ? "down" : "up";
           traverseStack(direction);
         } else {
-          // Magnet the card back to its original position
           gsap.to(frontCard, {
             x: 0,
             y: 0,
@@ -180,11 +172,11 @@ export function Swiper({ previewUrl }) {
   
     const cards = Array.from(sliderRef.current.querySelectorAll(".card"));
   
-    const baseY = 100; // Adjust this value to move the stack down
+    const baseY = 100;
     cards.forEach((card, i) => {
       gsap.to(card, {
         zIndex: displayImages.length - i,
-        y: `${baseY + -i * 20}px`, // Base offset + stacked spacing
+        y: `${baseY + -i * 20}px`,
         scale: 1 - i * 0.05,
         visibility: i < 4 ? "visible" : "hidden",
         duration: 0.5,
@@ -196,18 +188,15 @@ export function Swiper({ previewUrl }) {
     setDisplayImages((prev) => {
       const newImages = [...prev];
       if (direction === "up") {
-        // Move the top card to the bottom
         const topCard = newImages.shift();
         newImages.push(topCard);
       } else if (direction === "down") {
-        // Move the bottom card to the top
         const bottomCard = newImages.pop();
         newImages.unshift(bottomCard);
       }
       return newImages;
     });
 
-    // Reinitialize card positions
     setTimeout(() => initializeCards(), 100);
   };
 
@@ -217,7 +206,7 @@ export function Swiper({ previewUrl }) {
     setIsAnimating(true);
     const slider = sliderRef.current;
     const cards = Array.from(slider.querySelectorAll(".card"));
-    const frontCard = cards[0]; // Top-most card
+    const frontCard = cards[0];
   
     if (!frontCard) {
       setIsAnimating(false);
@@ -226,7 +215,6 @@ export function Swiper({ previewUrl }) {
   
     const currentSong = displayImages[0];
   
-    // Animate card off-screen
     gsap.to(frontCard, {
       x: direction === "right" ? window.innerWidth + 200 : -window.innerWidth - 200,
       rotation: direction === "right" ? 45 : -45,
@@ -236,7 +224,7 @@ export function Swiper({ previewUrl }) {
       onComplete: () => {
         setDisplayImages((prev) => {
           const newImages = [...prev];
-          newImages.shift(); // Remove top card
+          newImages.shift();
           return newImages;
         });
   
@@ -246,8 +234,8 @@ export function Swiper({ previewUrl }) {
   
         setTimeout(() => {
           setIsAnimating(false);
-          initializeCards(); // Update the card stack visually
-          initializeDraggable(); // Reinitialize Draggable for the new top card
+          initializeCards();
+          initializeDraggable();
         }, 100);
       },
     });
@@ -261,7 +249,6 @@ export function Swiper({ previewUrl }) {
     }
   };
 
-  // Loading state
   if (displayImages.length === 0) {
     return (
       <div className="container">
@@ -281,8 +268,7 @@ export function Swiper({ previewUrl }) {
     <div className="container">
       <header className="header">
         <div className="header-content">
-          <Music className="h-6 w-6 text-black" />
-          <h1 className="header-title">melodize</h1>
+         <h1 className="text-2xl font-bold">melodize</h1>
         </div>
       </header>
 
